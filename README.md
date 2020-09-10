@@ -1,60 +1,77 @@
-# template-for-proposals
+# Double-Ended Iterator and Destructuring
 
-A repository template for ECMAScript proposals.
+This proposal has not yet been presented to TC39 plenary meetings.
 
-## Before creating a proposal
+## Motivation
 
-Please ensure the following:
-  1. You have read the [process document](https://tc39.github.io/process-document/)
-  1. You have reviewed the [existing proposals](https://github.com/tc39/proposals/)
-  1. You are aware that your proposal requires being a member of TC39, or locating a TC39 delegate to "champion" your proposal
+Python support `[first, *rest, last] = iterable`, CoffeeScript support `[first, rest..., last] = iterable`, but [surprisedly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = iterable` doesn't work in JavaScript.
 
-## Create your proposal repo
+And in some cases we really want to get the items from the end, for example getting `matchIndex` from [String.prototype.replace when using a function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter):
 
-Follow these steps:
-  1.  Click the green ["use this template"](https://github.com/tc39/template-for-proposals/generate) button in the repo header. (Note: Do not fork this repo in GitHub's web interface, as that will later prevent transfer into the TC39 organization)
-  1.  Go to your repo settings “Options” page, under “GitHub Pages”, and set the source to the **main branch** under the root (and click Save, if it does not autosave this setting)
-      1. check "Enforce HTTPS"
-      1. On "Options", under "Features", Ensure "Issues" is checked, and disable "Wiki", and "Projects" (unless you intend to use Projects)
-      1. Under "Merge button", check "automatically delete head branches"
-<!--
-  1.  Avoid merge conflicts with build process output files by running:
-      ```sh
-      git config --local --add merge.output.driver true
-      git config --local --add merge.output.driver true
-      ```
-  1.  Add a post-rewrite git hook to auto-rebuild the output on every commit:
-      ```sh
-      cp hooks/post-rewrite .git/hooks/post-rewrite
-      chmod +x .git/hooks/post-rewrite
-      ```
--->
-  3.  ["How to write a good explainer"][explainer] explains how to make a good first impression.
+```js
+string.replace(pattern, (fullMatch, ...submatches, matchIndex, fullString) => {
+  // `matchIndex` is always the second to last param (the full string is the last param).
+  // There may be many submatch params, depending on the pattern.
+})
+```
 
-      > Each TC39 proposal should have a `README.md` file which explains the purpose
-      > of the proposal and its shape at a high level.
-      >
-      > ...
-      >
-      > The rest of this page can be used as a template ...
+A simple solution is making `let [first, ...rest, last] = iterable` work as
 
-      Your explainer can point readers to the `index.html` generated from `spec.emu`
-      via markdown like
+```js
+let [first, ...rest] = iterable
+let last = rest.pop()
+```
 
-      ```markdown
-      You can browse the [ecmarkup output](https://ACCOUNT.github.io/PROJECT/)
-      or browse the [source](https://github.com/ACCOUNT/PROJECT/blob/HEAD/spec.emu).
-      ```
+The concern is it require save all items in `rest` array, even you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which save the memory of `rest`, but you still need to consume the entire iterator. In the cases which `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` (suppose `repeat` is a generator returns infinite sequence of a same value), theoretically both `first` and `last` could be `10`.
 
-      where *ACCOUNT* and *PROJECT* are the first two path elements in your project's Github URL.
-      For example, for github.com/**tc39**/**template-for-proposals**, *ACCOUNT* is "tc39"
-      and *PROJECT* is "template-for-proposals".
+## Possible solution
 
+Instead of simple solution, we introduce double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consume from both ends.
 
-## Maintain your proposal repo
+```js
+let a = [1, 2, 3, 4, 5, 6]
+let deiter = a.values()
+deiter.next() // {value: 1}
+deiter.next() // {value: 2}
+deiter.next('back') // {value: 6}
+deiter.next() // {value: 3}
+deiter.next('back') // {value: 5}
+deiter.next('back') // {value: 4}
+deiter.next('back') // {done: true}
+deiter.next() // {done: true}
+```
 
-  1. Make your changes to `spec.emu` (ecmarkup uses HTML syntax, but is not HTML, so I strongly suggest not naming it ".html")
-  1. Any commit that makes meaningful changes to the spec, should run `npm run build` and commit the resulting output.
-  1. Whenever you update `ecmarkup`, run `npm run build` and commit any changes that come from that dependency.
+With double-ended iterator, `let [a, b, ..., c, d] = iterable` would roughly work as
 
-  [explainer]: https://github.com/tc39/how-we-work/blob/HEAD/explainer.md
+```js
+let iter = iterable[Symbol.deIterator]()
+let a = iter.next().value
+let b = iter.next().value
+let d = iter.next('back').value
+let c = iter.next('back').value
+iter.return()
+```
+
+## Generator
+
+To implement double-ended iterator in userland, we could use generator with [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
+
+```js
+Array.prototype.values = function *values(array) {
+  for (let start = 0, end = array.length; start < end;) {  
+    if (function.sent === 'back') yield array[--end]
+    else yield array[start++]
+  }
+}
+```
+
+## Prior art
+- Python [iterable unpacking](https://www.python.org/dev/peps/pep-3132/)
+- CoffeeScript [destructuring assignment with splats](https://coffeescript.org/#destructuring)
+- Rust [std::iter::DoubleEndedIterator](https://doc.rust-lang.org/std/iter/trait.DoubleEndedIterator.html)
+
+## Previous discussions
+- https://github.com/tc39/proposal-array-last/issues/31
+- https://github.com/tc39/proposal-reverseIterator/issues/1
+- https://es.discourse.group/t/bidirectional-iterators/339
+
