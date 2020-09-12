@@ -4,7 +4,7 @@ This proposal has not yet been presented to TC39 plenary meetings.
 
 ## Motivation
 
-Python support `[first, *rest, last] = iterable`, CoffeeScript support `[first, rest..., last] = iterable`, but [surprisedly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = iterable` doesn't work in JavaScript.
+Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript support `[first, rest..., last] = [1, 2, 3, 4]`, and Rust support `[first, rest @ .., last] = [1, 2, 3, 4]`, all result in `first` be `1`, `last` be `4`, `rest` be `[2, 3]`. But [surprisedly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
 
 And in some cases we really want to get the items from the end, for example getting `matchIndex` from [String.prototype.replace when using a function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter):
 
@@ -26,11 +26,11 @@ The concern is it require save all items in `rest` array, even you may only need
 
 ## Possible solution
 
-Instead of simple solution, we introduce double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consume from both ends.
+Instead of simple solution, we could introduce double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consume from both ends.
 
 ```js
 let a = [1, 2, 3, 4, 5, 6]
-let deiter = a.values()
+let deiter = a.values() // suppose values() would be upgraded to return a double-ended iterator
 deiter.next() // {value: 1}
 deiter.next() // {value: 2}
 deiter.next('back') // {value: 6}
@@ -65,10 +65,46 @@ Array.prototype.values = function *values(array) {
 }
 ```
 
+## Iterator helpers and reverse iterator
+
+Double-ended iterator could have some extra [iterator helpers](https://github.com/tc39/proposal-iterator-helpers) like `reversed` and `reduceRight`.
+
+```js
+DoubleEndedIterator.prototype.reversed = function *reversed() {
+  for (;;) {
+    let result
+    if (function.sent === 'back') result = this.next()
+    else result = this.next('back')
+    if (result.done) return result.value
+    else yield result.value
+  }
+}
+```
+
+We could also easily have default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator) if the object already support double-ended iterator.
+
+```js
+Object.assign(X.prototype, {
+  *[Symbol.reverseIterator]() {
+    const iter = this[Symbol.deIterator]()
+    for (;;) {
+      let result
+      if (function.sent === 'back') result = iter.next()
+      else result = iter.next('back')
+      if (result.done) return result.value
+      else yield result.value
+    }
+  }
+)
+```
+
 ## Prior art
 - Python [iterable unpacking](https://www.python.org/dev/peps/pep-3132/)
+- Ruby [array decomposition](https://docs.ruby-lang.org/en/2.7.0/doc/syntax/assignment_rdoc.html#label-Array+Decomposition)
 - CoffeeScript [destructuring assignment with splats](https://coffeescript.org/#destructuring)
+- Rust [subslice pattern](https://rust-lang.github.io/rfcs/2359-subslice-pattern-syntax.html)
 - Rust [std::iter::DoubleEndedIterator](https://doc.rust-lang.org/std/iter/trait.DoubleEndedIterator.html)
+- Rust [Macro improved_slice_patterns::destructure_iter])(https://docs.rs/improved_slice_patterns/2.0.1/improved_slice_patterns/macro.destructure_iter.html)
 
 ## Previous discussions
 - https://github.com/tc39/proposal-array-last/issues/31
