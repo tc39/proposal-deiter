@@ -104,7 +104,7 @@ Object.assign(X.prototype, {
 - CoffeeScript [destructuring assignment with splats](https://coffeescript.org/#destructuring)
 - Rust [subslice pattern](https://rust-lang.github.io/rfcs/2359-subslice-pattern-syntax.html)
 - Rust [std::iter::DoubleEndedIterator](https://doc.rust-lang.org/std/iter/trait.DoubleEndedIterator.html)
-- Rust [Macro improved_slice_patterns::destructure_iter])(https://docs.rs/improved_slice_patterns/2.0.1/improved_slice_patterns/macro.destructure_iter.html)
+- Rust [Macro improved_slice_patterns::destructure_iter](https://docs.rs/improved_slice_patterns/2.0.1/improved_slice_patterns/macro.destructure_iter.html)
 
 ## Previous discussions
 - https://github.com/tc39/proposal-array-last/issues/31
