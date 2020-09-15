@@ -58,7 +58,7 @@ To implement double-ended iterator in userland, we could use generator with [`fu
 
 ```js
 Array.prototype.values = function *values(array) {
-  for (let start = 0, end = array.length; start < end;) {  
+  for (let start = 0, end = array.length; start < end;) {
     if (function.sent === 'back') yield array[--end]
     else yield array[start++]
   }
@@ -111,3 +111,12 @@ Object.assign(X.prototype, {
 - https://github.com/tc39/proposal-reverseIterator/issues/1
 - https://es.discourse.group/t/bidirectional-iterators/339
 
+## Old discussions
+- https://esdiscuss.org/topic/early-spread-operator
+- https://esdiscuss.org/topic/parameter-lists-as-arguments-destructuring-sugar#content-3
+- https://mail.mozilla.org/pipermail/es-discuss/2012-June/023353.html
+- http://web.archive.org/web/20141214094119/https://bugs.ecmascript.org/show_bug.cgi?id=2034
+- https://esdiscuss.org/topic/rest-parameter-anywhere
+- https://esdiscuss.org/topic/rest-parameters
+- https://esdiscuss.org/topic/strawman-complete-array-and-object-destructuring
+- https://esdiscuss.org/topic/an-update-on-rest-operator
