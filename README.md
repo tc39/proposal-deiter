@@ -4,7 +4,7 @@ This proposal has not yet been presented to TC39 plenary meetings.
 
 ## Motivation
 
-Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript support `[first, rest..., last] = [1, 2, 3, 4]`, and Rust support `[first, rest @ .., last] = [1, 2, 3, 4]`, all result in `first` be `1`, `last` be `4`, `rest` be `[2, 3]`. But [surprisedly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
+Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript supports `[first, rest..., last] = [1, 2, 3, 4]`, and Rust supports `[first, rest @ .., last] = [1, 2, 3, 4]`, all resulting in `first` be `1`, `last` be `4`, and `rest` be `[2, 3]`. But [surprisingly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
 
 And in some cases we really want to get the items from the end, for example getting `matchIndex` from [String.prototype.replace when using a function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter):
 
@@ -15,7 +15,7 @@ string.replace(pattern, (fullMatch, ...submatches, matchIndex, fullString) => {
 })
 ```
 
-A simple solution is making `let [first, ...rest, last] = iterable` work as
+A simple solution is making `let [first, ...rest, last] = iterable` to work as
 
 ```js
 let [first, ...rest] = iterable
