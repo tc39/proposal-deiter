@@ -22,11 +22,11 @@ let [first, ...rest] = iterable
 let last = rest.pop()
 ```
 
-The concern is it require save all items in `rest` array, even you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which save the memory of `rest`, but you still need to consume the entire iterator. In the cases which `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` (suppose `repeat` is a generator returns infinite sequence of a same value), theoretically both `first` and `last` could be `10`.
+The concern is it requires saving all items in a `rest` array, although you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which saves the memory of `rest`, but you still need to consume the entire iterator. In the cases where `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` (suppose `repeat` is a generator returns infinite sequence of a same value), theoretically both `first` and `last` could be `10`.
 
 ## Possible solution
 
-Instead of simple solution, we could introduce double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consume from both ends.
+Instead of the simple solution, we could introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends.
 
 ```js
 let a = [1, 2, 3, 4, 5, 6]
@@ -41,7 +41,7 @@ deiter.next('back') // {done: true}
 deiter.next() // {done: true}
 ```
 
-With double-ended iterator, `let [a, b, ..., c, d] = iterable` would roughly work as
+With double-ended iterators, `let [a, b, ..., c, d] = iterable` would roughly work as
 
 ```js
 let iter = iterable[Symbol.deIterator]()
@@ -54,7 +54,7 @@ iter.return()
 
 ## Generator
 
-To implement double-ended iterator in userland, we could use generator with [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
+To implement double-ended iterator in userland, we could use a generator with the [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
 
 ```js
 Array.prototype.values = function *values(array) {
@@ -81,7 +81,7 @@ DoubleEndedIterator.prototype.reversed = function *reversed() {
 }
 ```
 
-We could also easily have default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator) if the object already support double-ended iterator.
+We could also easily have a default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator) if the object already supports double-ended iterator.
 
 ```js
 Object.assign(X.prototype, {
