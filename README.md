@@ -4,7 +4,7 @@ This proposal has not yet been presented to TC39 plenary meetings.
 
 ## Motivation
 
-Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript support `[first, rest..., last] = [1, 2, 3, 4]`, and Rust support `[first, rest @ .., last] = [1, 2, 3, 4]`, all result in `first` be `1`, `last` be `4`, `rest` be `[2, 3]`. But [surprisedly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
+Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript supports `[first, rest..., last] = [1, 2, 3, 4]`, and Rust supports `[first, rest @ .., last] = [1, 2, 3, 4]`, all resulting in `first` be `1`, `last` be `4`, and `rest` be `[2, 3]`. But [surprisingly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
 
 And in some cases we really want to get the items from the end, for example getting `matchIndex` from [String.prototype.replace when using a function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter):
 
@@ -15,18 +15,18 @@ string.replace(pattern, (fullMatch, ...submatches, matchIndex, fullString) => {
 })
 ```
 
-A simple solution is making `let [first, ...rest, last] = iterable` work as
+A simple solution is making `let [first, ...rest, last] = iterable` to work as
 
 ```js
 let [first, ...rest] = iterable
 let last = rest.pop()
 ```
 
-The concern is it require save all items in `rest` array, even you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which save the memory of `rest`, but you still need to consume the entire iterator. In the cases which `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` (suppose `repeat` is a generator returns infinite sequence of a same value), theoretically both `first` and `last` could be `10`.
+The concern is it requires saving all items in a `rest` array, although you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which saves the memory of `rest`, but you still need to consume the entire iterator. In the cases where `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` (suppose `repeat` is a generator returns infinite sequence of a same value), theoretically both `first` and `last` could be `10`.
 
 ## Possible solution
 
-Instead of simple solution, we could introduce double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consume from both ends.
+Instead of the simple solution, we could introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends.
 
 ```js
 let a = [1, 2, 3, 4, 5, 6]
@@ -41,7 +41,7 @@ deiter.next('back') // {done: true}
 deiter.next() // {done: true}
 ```
 
-With double-ended iterator, `let [a, b, ..., c, d] = iterable` would roughly work as
+With double-ended iterators, `let [a, b, ..., c, d] = iterable` would roughly work as
 
 ```js
 let iter = iterable[Symbol.deIterator]()
@@ -54,7 +54,7 @@ iter.return()
 
 ## Generator
 
-To implement double-ended iterator in userland, we could use generator with [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
+To implement double-ended iterator in userland, we could use a generator with the [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
 
 ```js
 Array.prototype.values = function *values(array) {
@@ -81,7 +81,7 @@ DoubleEndedIterator.prototype.reversed = function *reversed() {
 }
 ```
 
-We could also easily have default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator) if the object already support double-ended iterator.
+We could also easily have a default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator) if the object already supports double-ended iterator.
 
 ```js
 Object.assign(X.prototype, {
