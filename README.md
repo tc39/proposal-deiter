@@ -57,10 +57,10 @@ iter.return()
 To implement double-ended iterator in userland, we could use a generator with the [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
 
 ```js
-Array.prototype.values = function *values(array) {
-  for (let start = 0, end = array.length; start < end;) {
-    if (function.sent === 'back') yield array[--end]
-    else yield array[start++]
+Array.prototype.values = function *values() {
+  for (let start = 0, end = this.length; start < end;) {
+    if (function.sent === 'back') yield this[--end]
+    else yield this[start++]
   }
 }
 ```
