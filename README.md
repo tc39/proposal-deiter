@@ -58,6 +58,9 @@ To implement double-ended iterator in userland, we could use a generator with th
 
 ```js
 Array.prototype.values = function *values() {
+  // only for demo, for real upgrading of Array.prototype.values 
+  // to double-ended iterator, it need to deal with the edge cases 
+  // of mutating the array while iterating
   for (let start = 0, end = this.length; start < end;) {
     if (function.sent === 'back') yield this[--end]
     else yield this[start++]
