@@ -76,7 +76,7 @@ In this way, although the introduction of double-ended destructuring increases t
 
 Developers at least need to determine their performance requirements before using double-ended destructuring (even according to Mark Miller's opinion, this must be the case). However, in many cases, we are not clear on performance requirements at the beginning (junior engineers often lack this ability), or as the project involve, performance requirements will change. Many experienced engineers tend to ensure that the code always has deterministic performance expectations, even if there is no clear performance requirement at the beginning.
 
-From my engineering experience, I think this will make the double-ended deconstruction into a [鸡肋 (chicken rib, things of little value or interest, yet pitiable if given up or thrown away)](https://en.wiktionary.org/wiki/%E9%B8%A1%E8%82%8B).
+From my engineering experience, I think this will make the double-ended destructuring into a [鸡肋 (chicken rib, things of little value or interest, yet pitiable if given up or thrown away)](https://en.wiktionary.org/wiki/%E9%B8%A1%E8%82%8B).
 
 ## Mechanism B: Based on double-ended iterator
 
