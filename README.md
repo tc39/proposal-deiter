@@ -101,6 +101,28 @@ Object.assign(X.prototype, {
 )
 ```
 
+## FAQ
+
+### I like the idea of allowing `...` in the middle of the destructuring pattern, but why introduce "double-ended" iterator?
+
+Because JavaScript `[first, ...rest] = sequence` destructuring is based on iterable protocol, so we should make `[first, ...rest, last] = sequence` also based on iterable protocol. And `[a, b, ...rest, c, d, e] = sequence` could be perfectly interpreted as "take first two elements from the sequence, then take last three, and the rest", aka. allowing take elements from the the other end of a sequence, which conceptually same as what "double-ended" mean in the common data structure [deque](https://en.wikipedia.org/wiki/Double-ended_queue).  Note JavaScript already have some Array APIs behave as double-ended: 'indexOf/lastIndexOf, reduce/reduceRight, find/findLast', etc. So generalizing the concept could increase the consistency of all APIs (include user-land libraries) which may based on similar abstraction. See [Optional Mechanisms for Double-ended Destructructing](https://github.com/tc39/proposal-deiter/blob/main/why-deiter.md) for further analysis about the consideration of performance, mental burden and design cost.
+
+### How could a iterator/generator move back to the previous status?
+
+It's not "move back" or "step back", it's "consume the next value from the other end" or "shorten range of values from the other end". This is why it's `next('back')` not `previous()`. 
+
+There are two concepts very easy to confuse, _bidirectional_ vs. _double-ended_. Bidirectional means you can invoke `next()` (move forward) or `previous()` (move backward). Double-ended means you can invoke `next()` (take the value from the front-end) or `next('back')` (take the value from the back-end).
+
+### What is "double-ended", how it differ to "bidirectional"?
+
+To help understand the concepts, you could imagine you use cursors point to positions of a sequence and get value at the position. Normal iteration need only one cursor, and initally the cursor is at the most left side of the sequence. You are only allowed to move the cursor to right direction and get the value of the position via `next()`. Bidrectional means you could also move the cursor to left direction via `previous()`, so go back to the previous position of the sequence, and get the value (again) at the position. 
+
+Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `next('back')` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
+
+You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `next('back')/`previous('back')` move the second cursor left/right.
+
+Note, even these two things could coexist, bidirectional is **not** compatible with JavaScript iterator protocol, because iterators are one-shot consumption, and produce `{done: true}` if all values are consumed, and it is required that `next()` always returns `{done: true}` after that, but `previous()` actually require to restore to previous, undone state. 
+
 ## Prior art
 - Python [iterable unpacking](https://www.python.org/dev/peps/pep-3132/)
 - Ruby [array decomposition](https://docs.ruby-lang.org/en/2.7.0/doc/syntax/assignment_rdoc.html#label-Array+Decomposition)
