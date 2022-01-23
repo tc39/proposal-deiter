@@ -1,6 +1,10 @@
 # Double-Ended Iterator and Destructuring
 
-This proposal has not yet been presented to TC39 plenary meetings.
+Stauts: Stage 1
+
+Author: HE Shi-Jun (hax)
+
+Champion: HE Shi-Jun (hax)
 
 ## Motivation
 
