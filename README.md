@@ -154,7 +154,7 @@ Because JavaScript `[first, ...rest] = sequence` destructuring is based on itera
 
 It's not "move back" or "step back", it's "consume the next value from the other end" or "shorten range of values from the other end".
 
-There are two concepts easy to confuse, _bidirectional_ vs. _double-ended_. Bidirectional means you can invoke `next()` (move forward) or `previous()` (move backward). Double-ended means you can invoke `next()` (consume the first item from the rest items of the sequence) or `next('last')` (consume the last item from the rest items of the sequence).
+There are two concepts easy to confuse, _bidirectional_ vs. _double-ended_. Bidirectional means you can invoke `next()` (move forward) or `previous()` (move backward). Double-ended means you can invoke `next()` (consume the first item from the rest items of the sequence) or `nextLast()` (consume the last item from the rest items of the sequence).
 
 The initial version of this proposal used `next("back")` which follow Rust `nextBack()`. The term "back" may come from C++ vector/deque (see https://cplusplus.com/reference/vector/vector/back/), means "last element". This term usage is not popular in JavaScript ecosystem and cause confusion, so we changed the word from "back" to "last".
 
@@ -164,7 +164,7 @@ To help understand the concepts, you could imagine you use cursors point to posi
 
 Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `nextLast()` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
 
-You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `nextLast()/`previousLast()` move the second cursor left/right.
+You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `nextLast()`/`previousLast()` move the second cursor left/right.
 
 Note, even these two things could coexist, bidirectional is **not** compatible with JavaScript iterator protocol, because JavaScript iterators are one-shot consumption, and produce `{done: true}` if all values are consumed, and it is required that `next()` always returns `{done: true}` after that, but `previous()` actually require to restore to previous, undone state. 
 
