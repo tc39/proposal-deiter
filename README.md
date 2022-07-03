@@ -30,7 +30,7 @@ let last = rest.pop()
 
 The concern is it requires saving all items in the `rest` array, although you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which saves the memory of `rest`, but you still need to consume the entire iterator. In the cases where `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` which `repeat` is a generator returns infinite sequence of a same value, theoretically both `first` and `last` could be `10`, but you just get a dead loop.
 
-Instead of the naive solution, we introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends, `next()` consume the first item from the rest items of the sequence, `next("last")` consume the last item from the rest items of the sequence.
+Instead of the naive solution, we introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends, `next()` consume the first item from the rest items of the sequence, `nextLast()` consume the last item from the rest items of the sequence.
 
 ```js
 let a = [1, 2, 3, 4, 5, 6]
@@ -162,9 +162,9 @@ The initial version of this proposal used `next("back")` which follow Rust `next
 
 To help understand the concepts, you could imagine you use cursors point to positions of a sequence and get value at the position. Normal iteration need only one cursor, and initally the cursor is at the most left side of the sequence. You are only allowed to move the cursor to right direction and get the value of the position via `next()`. Bidrectional means you could also move the cursor to left direction via `previous()`, so go back to the previous position of the sequence, and get the value (again) at the position. 
 
-Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `next('last')` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
+Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `nextLast()` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
 
-You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `next("last")/`previous("last")` move the second cursor left/right.
+You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `nextLast()/`previousLast()` move the second cursor left/right.
 
 Note, even these two things could coexist, bidirectional is **not** compatible with JavaScript iterator protocol, because JavaScript iterators are one-shot consumption, and produce `{done: true}` if all values are consumed, and it is required that `next()` always returns `{done: true}` after that, but `previous()` actually require to restore to previous, undone state. 
 
