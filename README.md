@@ -37,11 +37,11 @@ let a = [1, 2, 3, 4, 5, 6]
 let deiter = a.values() // suppose values() would be upgraded to return a double-ended iterator
 deiter.next() // {value: 1}
 deiter.next() // {value: 2}
-deiter.next('last') // {value: 6}
+deiter.nextLast() // {value: 6}
 deiter.next() // {value: 3}
-deiter.next('last') // {value: 5}
-deiter.next('last') // {value: 4}
-deiter.next('last') // {done: true}
+deiter.nextLast() // {value: 5}
+deiter.nextLast() // {value: 4}
+deiter.nextLast() // {done: true}
 deiter.next() // {done: true}
 ```
 
@@ -51,8 +51,8 @@ With double-ended iterators, `let [a, b, ..., c, d] = iterable` would roughly wo
 let iter = iterable[Symbol.deIterator]()
 let a = iter.next().value
 let b = iter.next().value
-let d = iter.next('last').value
-let c = iter.next('last').value
+let d = iter.nextLast().value
+let c = iter.nextLast().value
 iter.return()
 ```
 
@@ -70,55 +70,77 @@ function *values(arrayLike) {
 }
 ```
 
-To implement double-ended version of `values(arrayLike)` in userland, we could use a generator with the [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
+To implement double-ended version of `values(arrayLike)` in userland, we could use the `deiter` helper:
 
 ```js
-function *values(arrayLike) {
+const values = deiter.autoPrime(function *values(arrayLike) {
   let i = 0, j = 0
+  let method = yield
   while (i + j < arrayLike.length) {
-    if (function.sent === 'last') {
-      yield arrayLike[arrayLike.length - 1 - j]
+    if (method == "nextLast") {
+      method = yield arrayLike[arrayLike.length - 1 - j]
       j++
-    } else {
-      yield arrayLike[i]
+    } else { // method == "next"
+      method = yield arrayLike[i]
       i++
     }
   }
-}
+})
 ```
+
+In the future, the [`function.sent` feature](https://github.com/tc39/proposal-function.sent) may provide better syntax.
+
 
 ## Iterator helpers and reverse iterator
 
-Double-ended iterator could have some extra [iterator helpers](https://github.com/tc39/proposal-iterator-helpers) like `toReversed`, `takeLast`, `dropLast` and `reduceRight`.
+[Iterator helpers](https://github.com/tc39/proposal-iterator-helpers) add some useful methods to iterators and async iterators. Most methods are easy to upgrade to support double-ended. For example, `map()` could be implemented like:
 
 ```js
-Iterator.prototype.toReversed = function () {
-  return new ReversedIterator(this)
+// only for demonstration, the real implementation should use internal slots
+Iterator.prototype.map = function (fn) {
+  let iter = {
+    __proto__: Iterator.prototype,
+  }
+  if (this.next) iter.next = (...args) => fn(this.next(...args))
+  if (this.nextLast) iter.nextLast = (...args) => fn(this.nextLast(...args))
+  if (this.throw) iter.throw = (...args) => this.throw(...args)
+  if (this.return) iter.return = (...args) => this.return(...args)
+  return iter
 }
-
-class ReversedIterator extends Iterator {
-  #upstream
-  constructor(iter) {
-    this.#upstream = iter
-  }
-  next(v) {
-    if (v === 'last') return this.#upstream.next()
-    else return this.#upstream.next('last')
-  }
-  throw(e) {
-    return this.#upstream.throw?.(e)
-  }
-  return(v) {
-    return this.#upstream.return?.(v)
-  }
-}
+// usage
+let [first, ..., last] = [1, 2, 3].values().map(x => x * 2)
+first // 2
+last // 6
 ```
 
-We could also easily have a default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator).
+Furthermore, some extra iterator helpers like `toReversed`, `takeLast`, `dropLast` and `reduceRight`, etc. could be introduced.
+
+For example, `toReversed()`:
+
+```js
+// only for demonstration, the real implementation should use internal slots
+Iterator.prototype.toReversed = function () {
+  let iter = {
+    __proto__: Iterator.prototype,
+  }
+  if (this.nextLast) iter.next = (...args) => this.nextLast(...args)
+  if (this.next) iter.nextLast = (...args) => this.next(...args)
+  if (this.throw) iter.throw = (...args) => this.throw(...args)
+  if (this.return) iter.return = (...args) => this.return(...args)
+  return iter
+}
+// usage
+let a = [1, 2, 3, 4]
+let [first, ..., last] = a.values().toReversed()
+first // 4
+last // 1
+```
+
+With double-ended iterators and `toReversed()` helpers, we may not need [reverse iterator](https://github.com/tc39/proposal-reverseIterator). Even we still want reverse iterator as a separate protocol, we could also easily have a default implementation for it.
 
 ```js
 Iterator.prototype[Symbol.reverseIterator] = function () {
-  return new ReversedIterator(this)
+  return this[Symbol.iterator].toReversed()
 }
 ```
 
