@@ -30,18 +30,18 @@ let last = rest.pop()
 
 The concern is it requires saving all items in the `rest` array, although you may only need `last`. A possible mitigation is supporting `[..., last] = iterable` which saves the memory of `rest`, but you still need to consume the entire iterator. In the cases where `iterable` is a large array or something like `Number.range(1, 100000)`, it's very inefficient. And in case like `let [first, ..., last] = repeat(10)` which `repeat` is a generator returns infinite sequence of a same value, theoretically both `first` and `last` could be `10`, but you just get a dead loop.
 
-Instead of the naive solution, we introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends, `next()` consume the first item from the rest items of the sequence, `next("last")` consume the last item from the rest items of the sequence.
+Instead of the naive solution, we introduce the double-ended iterator (like Rust std::iter::DoubleEndedIterator). A double-ended iterator could be consumed from both ends, `next()` consume the first item from the rest items of the sequence, `nextLast()` consume the last item from the rest items of the sequence.
 
 ```js
 let a = [1, 2, 3, 4, 5, 6]
 let deiter = a.values() // suppose values() would be upgraded to return a double-ended iterator
 deiter.next() // {value: 1}
 deiter.next() // {value: 2}
-deiter.next('last') // {value: 6}
+deiter.nextLast() // {value: 6}
 deiter.next() // {value: 3}
-deiter.next('last') // {value: 5}
-deiter.next('last') // {value: 4}
-deiter.next('last') // {done: true}
+deiter.nextLast() // {value: 5}
+deiter.nextLast() // {value: 4}
+deiter.nextLast() // {done: true}
 deiter.next() // {done: true}
 ```
 
@@ -51,8 +51,8 @@ With double-ended iterators, `let [a, b, ..., c, d] = iterable` would roughly wo
 let iter = iterable[Symbol.deIterator]()
 let a = iter.next().value
 let b = iter.next().value
-let d = iter.next('last').value
-let c = iter.next('last').value
+let d = iter.nextLast().value
+let c = iter.nextLast().value
 iter.return()
 ```
 
@@ -70,55 +70,77 @@ function *values(arrayLike) {
 }
 ```
 
-To implement double-ended version of `values(arrayLike)` in userland, we could use a generator with the [`function.sent` feature](https://github.com/tc39/proposal-function.sent).
+To implement double-ended version of `values(arrayLike)` in userland, we could use the `deiter` helper:
 
 ```js
-function *values(arrayLike) {
+const values = deiter.autoPrime(function *values(arrayLike) {
   let i = 0, j = 0
+  let method = yield
   while (i + j < arrayLike.length) {
-    if (function.sent === 'last') {
-      yield arrayLike[arrayLike.length - 1 - j]
+    if (method == "nextLast") {
+      method = yield arrayLike[arrayLike.length - 1 - j]
       j++
-    } else {
-      yield arrayLike[i]
+    } else { // method == "next"
+      method = yield arrayLike[i]
       i++
     }
   }
-}
+})
 ```
+
+In the future, the [`function.sent` feature](https://github.com/tc39/proposal-function.sent) may provide better syntax.
+
 
 ## Iterator helpers and reverse iterator
 
-Double-ended iterator could have some extra [iterator helpers](https://github.com/tc39/proposal-iterator-helpers) like `toReversed`, `takeLast`, `dropLast` and `reduceRight`.
+[Iterator helpers](https://github.com/tc39/proposal-iterator-helpers) add some useful methods to iterators and async iterators. Most methods are easy to upgrade to support double-ended. For example, `map()` could be implemented like:
 
 ```js
-Iterator.prototype.toReversed = function () {
-  return new ReversedIterator(this)
+// only for demonstration, the real implementation should use internal slots
+Iterator.prototype.map = function (fn) {
+  let iter = {
+    __proto__: Iterator.prototype,
+  }
+  if (this.next) iter.next = (...args) => fn(this.next(...args))
+  if (this.nextLast) iter.nextLast = (...args) => fn(this.nextLast(...args))
+  if (this.throw) iter.throw = (...args) => this.throw(...args)
+  if (this.return) iter.return = (...args) => this.return(...args)
+  return iter
 }
-
-class ReversedIterator extends Iterator {
-  #upstream
-  constructor(iter) {
-    this.#upstream = iter
-  }
-  next(v) {
-    if (v === 'last') return this.#upstream.next()
-    else return this.#upstream.next('last')
-  }
-  throw(e) {
-    return this.#upstream.throw?.(e)
-  }
-  return(v) {
-    return this.#upstream.return?.(v)
-  }
-}
+// usage
+let [first, ..., last] = [1, 2, 3].values().map(x => x * 2)
+first // 2
+last // 6
 ```
 
-We could also easily have a default implementation for [reverse iterator](https://github.com/tc39/proposal-reverseIterator).
+Furthermore, some extra iterator helpers like `toReversed`, `takeLast`, `dropLast` and `reduceRight`, etc. could be introduced.
+
+For example, `toReversed()`:
+
+```js
+// only for demonstration, the real implementation should use internal slots
+Iterator.prototype.toReversed = function () {
+  let iter = {
+    __proto__: Iterator.prototype,
+  }
+  if (this.nextLast) iter.next = (...args) => this.nextLast(...args)
+  if (this.next) iter.nextLast = (...args) => this.next(...args)
+  if (this.throw) iter.throw = (...args) => this.throw(...args)
+  if (this.return) iter.return = (...args) => this.return(...args)
+  return iter
+}
+// usage
+let a = [1, 2, 3, 4]
+let [first, ..., last] = a.values().toReversed()
+first // 4
+last // 1
+```
+
+With double-ended iterators and `toReversed()` helpers, we may not need [reverse iterator](https://github.com/tc39/proposal-reverseIterator). Even we still want reverse iterator as a separate protocol, we could also easily have a default implementation for it.
 
 ```js
 Iterator.prototype[Symbol.reverseIterator] = function () {
-  return new ReversedIterator(this)
+  return this[Symbol.iterator].toReversed()
 }
 ```
 
@@ -132,7 +154,7 @@ Because JavaScript `[first, ...rest] = sequence` destructuring is based on itera
 
 It's not "move back" or "step back", it's "consume the next value from the other end" or "shorten range of values from the other end".
 
-There are two concepts easy to confuse, _bidirectional_ vs. _double-ended_. Bidirectional means you can invoke `next()` (move forward) or `previous()` (move backward). Double-ended means you can invoke `next()` (consume the first item from the rest items of the sequence) or `next('last')` (consume the last item from the rest items of the sequence).
+There are two concepts easy to confuse, _bidirectional_ vs. _double-ended_. Bidirectional means you can invoke `next()` (move forward) or `previous()` (move backward). Double-ended means you can invoke `next()` (consume the first item from the rest items of the sequence) or `nextLast()` (consume the last item from the rest items of the sequence).
 
 The initial version of this proposal used `next("back")` which follow Rust `nextBack()`. The term "back" may come from C++ vector/deque (see https://cplusplus.com/reference/vector/vector/back/), means "last element". This term usage is not popular in JavaScript ecosystem and cause confusion, so we changed the word from "back" to "last".
 
@@ -140,9 +162,9 @@ The initial version of this proposal used `next("back")` which follow Rust `next
 
 To help understand the concepts, you could imagine you use cursors point to positions of a sequence and get value at the position. Normal iteration need only one cursor, and initally the cursor is at the most left side of the sequence. You are only allowed to move the cursor to right direction and get the value of the position via `next()`. Bidrectional means you could also move the cursor to left direction via `previous()`, so go back to the previous position of the sequence, and get the value (again) at the position. 
 
-Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `next('last')` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
+Double-ended means you have **two** cursors and initally one is at the most left side and can only move to right direction, the other is at most right side and can only move to left direction. So you use `next()` move the first cursor to right and get the value at its position, use `nextLast()` move the second cursor to left and get the value at its position. If two cursors meet the same postion, the sequence is totally consumed. 
 
-You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `next("last")/`previous("last")` move the second cursor left/right.
+You could find these two concept are actually orthogonal, so theorcially we could have both bidirectional and double-ended. So `next()`/`previous()` move the first cursor right/left, `nextLast()`/`previousLast()` move the second cursor left/right.
 
 Note, even these two things could coexist, bidirectional is **not** compatible with JavaScript iterator protocol, because JavaScript iterators are one-shot consumption, and produce `{done: true}` if all values are consumed, and it is required that `next()` always returns `{done: true}` after that, but `previous()` actually require to restore to previous, undone state. 
 
