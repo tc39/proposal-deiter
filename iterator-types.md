@@ -17,7 +17,7 @@ method  \  upstream | double-ended | forward-only | backward-only
 `filter` | ✅ double-ended | ✅ forward-only | ✅ backward-only
 `flatMap` | ✅ double-ended | ✅ forward-only | ✅ backward-only
 `reverse` | ✅ double-ended | ✅ backward-only | ✅ forward-only
-`indexed` |  ✅ front-only | ✅ forward-only | ❌
+`indexed` |  ✅ forward-only | ✅ forward-only | ❌
 `take` | ✅ forward-only | ✅ forward-only | ❌
 `drop` | ✅ double-ended | ✅ forward-only | ❌
 `find` | ✅ | ✅ | ❌
@@ -27,7 +27,9 @@ method  \  upstream | double-ended | forward-only | backward-only
 `findLast` | ✅ | ❌ | ✅
 `reduceRight` | ✅ | ❌ | ✅
 
-Note: How to read the table: `upstream.method() => tablecell`, for example, `doubleEnded.map() => doubleEnded`, `forwardOnly.reverse() => backwardOnly`, `forwardOnly.takeLast() => ❌` (❌  means throw TypeError)
+Note: How to read the table: `upstream.method() => tablecell`, for example, `doubleEnded.map() => doubleEnded`, `forwardOnly.reverse() => backwardOnly`, `forwardOnly.takeLast() => ❌` (❌  means throw TypeError).
+
+Instead of throwing TypeError for ❌ , another option is return a "dead" iterator (which have no `next()` and `nextLast()`), though it seems useless.
 
 Maybe `take`, `takeLast` could keep double-ended, see https://github.com/tc39/proposal-deiter/issues/13
 
