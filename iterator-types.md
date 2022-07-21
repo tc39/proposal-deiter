@@ -22,7 +22,7 @@ method  \  upstream | double-ended | forward-only | backward-only
 `drop` | ✅ double-ended | ✅ forward-only | ❌
 `find` | ✅ | ✅ | ❌
 `reduce` | ✅ | ✅  | ❌
-`takeLast` | ✅ back-only | ❌ | ✅ backward-only
+`takeLast` | ✅ backward-only | ❌ | ✅ backward-only
 `dropLast` | ✅ double-ended | ❌ | ✅ backward-only
 `findLast` | ✅ | ❌ | ✅
 `reduceRight` | ✅ | ❌ | ✅
