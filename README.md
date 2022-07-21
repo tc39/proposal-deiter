@@ -118,11 +118,10 @@ class IntRange {
 Iterator.prototype.map = function (fn) {
   let iter = {
     __proto__: Iterator.prototype,
+    return(value) { this.return?.(); return {done: true, value} }
   }
-  if (this.next) iter.next = (...args) => fn(this.next(...args))
-  if (this.nextLast) iter.nextLast = (...args) => fn(this.nextLast(...args))
-  if (this.throw) iter.throw = (...args) => this.throw(...args)
-  if (this.return) iter.return = (...args) => this.return(...args)
+  if (this.next) iter.next = () => fn(this.next())
+  if (this.nextLast) iter.nextLast = () => fn(this.nextLast())
   return iter
 }
 // usage
@@ -138,14 +137,13 @@ For example, `toReversed()`:
 ```js
 // only for demonstration, the real implementation should use internal slots
 Iterator.prototype.toReversed = function () {
-  let iter = {
+  let next = this.nextLast?.bind(this)
+  let nextLast = this.next?.bind(this)
+  let ret = this.return?.bind(this)
+  return {
     __proto__: Iterator.prototype,
+    next, nextLast, return: ret,
   }
-  if (this.nextLast) iter.next = (...args) => this.nextLast(...args)
-  if (this.next) iter.nextLast = (...args) => this.next(...args)
-  if (this.throw) iter.throw = (...args) => this.throw(...args)
-  if (this.return) iter.return = (...args) => this.return(...args)
-  return iter
 }
 // usage
 let a = [1, 2, 3, 4]
