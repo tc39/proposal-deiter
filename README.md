@@ -70,26 +70,39 @@ function *values(arrayLike) {
 }
 ```
 
-To implement double-ended version of `values(arrayLike)` in userland, we could use the `deiter` helper:
+To implement double-ended version of `values(arrayLike)` in userland, we could use the `doubleEnded` helper:
 
 ```js
-const values = deiter.autoPrime(function *values(arrayLike) {
+const values = doubleEnded(function *values(arrayLike, context) {
   let i = 0, j = 0
-  let method = yield
   while (i + j < arrayLike.length) {
-    if (method == "nextLast") {
-      method = yield arrayLike[arrayLike.length - 1 - j]
+    if (context.method == "nextLast") {
+      yield arrayLike[arrayLike.length - 1 - j]
       j++
-    } else { // method == "next"
-      method = yield arrayLike[i]
+    } else { // context.method == "next"
+      yield arrayLike[i]
       i++
     }
   }
 })
 ```
-
-In the future, the [`function.sent` feature](https://github.com/tc39/proposal-function.sent) may provide better syntax.
-
+It could also be used as decorator (stage 3 proposal):
+```js
+class IntRange {
+  constructor(start, end) {
+    if (!Number.isSafeInteger(start)) throw new TypeError()
+    if (!Number.isSafeInteger(end)) throw new TypeError()
+    this.start = start; this.end = end; Object.freeze(this)
+  }
+  @doubleEnded *[Symbol.iterator](context) {
+    let {start, end} = this
+    while (start < end) {
+      if (context.method == "nextLast") yield --end
+      else yield start++
+    }
+  }
+}
+```
 
 ## Iterator helpers and reverse iterator
 
