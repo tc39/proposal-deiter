@@ -6,6 +6,11 @@ Author: HE Shi-Jun (hax)
 
 Champion: HE Shi-Jun (hax)
 
+- [Advanced to Stage 1 on Sept 2020](https://github.com/tc39/notes/blob/main/meetings/2020-09/sept-24.md#double-ended-iterator-and-destructuring-for-stage-1)
+- [Incubator call on Dec 3, 2020](https://github.com/tc39/incubator-agendas/blob/main/notes/2020/12-03.md)
+- [Stage 0 -> 1 (outdated) presentation](https://johnhax.net/2020/tc39-sept-deiter/slide)
+- [Stage 1 update on July 21, 2022](https://johnhax.net/2022/deiter/slide)
+
 ## Motivation
 
 Python and Ruby support `(first, *rest, last) = [1, 2, 3, 4]`, CoffeeScript supports `[first, rest..., last] = [1, 2, 3, 4]`, and Rust supports `[first, rest @ .., last] = [1, 2, 3, 4]`, all resulting in `first` be `1`, `last` be `4`, and `rest` be `[2, 3]`. But [surprisingly](https://stackoverflow.com/questions/33064377/destructuring-to-get-the-last-element-of-an-array-in-es6) `[first, ...rest, last] = [1, 2, 3, 4]` doesn't work in JavaScript.
@@ -48,7 +53,7 @@ deiter.next() // {done: true}
 With double-ended iterators, `let [a, b, ..., c, d] = iterable` would roughly work as
 
 ```js
-let iter = iterable[Symbol.deIterator]()
+let iter = iterable[Symbol.iterator]()
 let a = iter.next().value
 let b = iter.next().value
 let d = iter.nextLast().value
