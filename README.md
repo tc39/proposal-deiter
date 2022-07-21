@@ -70,7 +70,7 @@ function *values(arrayLike) {
 }
 ```
 
-To implement double-ended version of `values(arrayLike)` in userland, we could use the `doubleEnded` helper:
+To implement double-ended version of `values(arrayLike)` in userland, we could use the [`doubleEnded` helper](double-ended-helper.js):
 
 ```js
 const values = doubleEnded(function *values(arrayLike, context) {
